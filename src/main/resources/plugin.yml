@@ -1,0 +1,4 @@
+name: Fadcs
+version: '${version}'
+main: info.preva1l.fadcs.Fadcs
+api-version: '1.16'

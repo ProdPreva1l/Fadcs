@@ -1,0 +1,20 @@
+
+# Whether of not to ignore the pdc when checking if the item for sale/buying is the same as the item the player has
+# Useful if you have an anti dupe plugin like Fadad that uses the PDC to give items a unique id
+ignore-pdc: false
+
+
+sign-format:
+  create:
+    - "[shop]"
+    - "[chestshop]"
+  player:
+    line-1: ""
+    line-2: ""
+    line-3: ""
+    line-4: ""
+  admin:
+    line-1: ""
+    line-2: ""
+    line-3: ""
+    line-4: ""
