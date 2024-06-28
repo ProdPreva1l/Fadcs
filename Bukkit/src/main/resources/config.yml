@@ -1,0 +1,49 @@
+# How long chest shops should be cached for (in minutes)
+# decrease this value if you are seeing high memory usage from this plugin
+cache-length: 30
+
+# Whether of not to ignore the pdc when checking if the item for sale/buying is the same as the item the player has
+# Useful if you have an anti dupe plugin like Fadad that uses the PDC to give items a unique id
+ignore-pdc: false
+
+sign-format:
+  player:
+    create:
+      - "[shop]"
+      - "[chestshop]"
+    # {0} = owner name
+    line-1: "&e&lChest Shop"
+    line-2: "Right Click"
+    line-3: "&fOwner:"
+    line-4: "{0}"
+  admin:
+    create:
+      - "[admin shop]"
+      - "[admin chestshop]"
+    line-1: "&e&lChest Shop"
+    line-2: "Right Click"
+    line-3: ""
+    line-4: "&f(Admin Shop)"
+
+database:
+  type: "SQLITE" # Supported Types: SQLITE, MYSQL, MARIADB, MONGO
+  # Below is not required for SQLITE
+  # For MySQL and MariaDB, uri must be a JDBC uri
+  uri: "jdbc:mysql://username:password@127.0.0.1:3306/Fadah"
+  database: "Fadcs"
+
+# Redis is only required for x-server environments.
+# This mode is not compatible with SQLITE database
+# Snapchat's KeyDB is recommended as it is 2x faster than normal redis while still fully compatible.
+redis:
+  enabled: false
+  host: "127.0.0.1"
+  port: 6379
+  password: "password"
+  channel: "chestshop.cache"
+
+# Usually there would be a separate file for these but, this plugin does not have many messages
+messages:
+  prefix: "&#d6b11e&lChest Shops &r"
+  no-permission: "&cYou do not have permission to run this command!"
+  generic-error: "&cAn error occurred! &8(&7{0}&8)" # {0} = the error code to report to the developer
