@@ -1,73 +1,117 @@
+import org.apache.tools.ant.filters.ReplaceTokens
+
 plugins {
     id 'java'
+    id 'org.ajoberstar.grgit' version '5.2.2'
+    id 'io.github.goooler.shadow' version '8.1.7'
 }
 
 group = 'info.preva1l'
-version = '1.0'
+version = "1.0.0${versionMetadata()}"
 
-repositories {
-    mavenCentral()
-    maven {
-        name = "papermc-repo"
-        url = "https://repo.papermc.io/repository/maven-public/"
+ext {
+    set 'version', version.toString()
+}
+
+allprojects {
+    apply plugin: 'io.github.goooler.shadow'
+    apply plugin: 'maven-publish'
+    apply plugin: 'java'
+
+    sourceCompatibility = 17
+    targetCompatibility = 17
+
+    compileJava.options.encoding = 'UTF-8'
+    javadoc.options.encoding = 'UTF-8'
+    javadoc.options.addStringOption('Xdoclint:none', '-quiet')
+
+    repositories {
+        mavenLocal()
+        mavenCentral()
     }
-    maven {
-        name = "sonatype"
-        url = "https://oss.sonatype.org/content/groups/public/"
+
+    dependencies {
+        compileOnly 'org.jetbrains:annotations:24.0.0'
+        compileOnly 'org.projectlombok:lombok:1.18.32'
+        annotationProcessor 'org.projectlombok:lombok:1.18.32'
+        annotationProcessor 'org.jetbrains:annotations:24.0.0'
+
+        testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.2'
+        testImplementation 'org.junit.jupiter:junit-jupiter-params:5.10.2'
+        testImplementation 'org.junit.jupiter:junit-jupiter-engine:5.10.2'
+
+        testCompileOnly 'org.jetbrains:annotations:24.1.0'
+        testCompileOnly 'org.projectlombok:lombok:1.18.32'
+        testAnnotationProcessor 'org.projectlombok:lombok:1.18.32'
+    }
+
+    test {
+        useJUnitPlatform()
+    }
+
+    processResources {
+        filesMatching(['**/*.json', '**/*.yml']) {
+            filter ReplaceTokens as Class, beginToken: '${', endToken: '}',
+                    tokens: rootProject.ext.properties
+        }
     }
 }
 
-dependencies {
-    compileOnly "com.destroystokyo.paper:paper-api:1.16.5-R0.1-SNAPSHOT"
+subprojects {
+    version rootProject.version
+    archivesBaseName = "${rootProject.name}-${project.name.capitalize()}"
 
-    compileOnly 'redis.clients:jedis:5.1.0'
-    compileOnly 'org.apache.commons:commons-pool2:2.12.0'
+    task generateJavadoc(type: Javadoc) {
+        sourceSets.main.java.srcDirs.each { dir ->
+            source(dir)
+        }
+        classpath += configurations.compileClasspath
+        options.addStringOption('Xdoclint:none', '-quiet')
+        destinationDir = file("$buildDir/docs/javadoc")
+    }
 
-    implementation 'com.zaxxer:HikariCP:5.1.0'
-    compileOnly 'org.xerial:sqlite-jdbc:3.45.2.0'
-    compileOnly 'com.mysql:mysql-connector-j:8.3.0'
-    compileOnly 'org.mariadb.jdbc:mariadb-java-client:3.3.3'
-    compileOnly 'org.mongodb:mongodb-driver-sync:5.0.0'
+    task javadocJar(type: Jar, dependsOn: generateJavadoc) {
+        dependsOn generateJavadoc
+        archiveFileName = "${rootProject.name}-${project.name.capitalize()}-javadoc.jar"
+        from generateJavadoc.destinationDir
+    }
 
-    compileOnly 'com.github.MilkBowl:VaultAPI:1.7'
+    javadoc {
+        if (JavaVersion.current().isJava9Compatible()) {
+            options.addBooleanOption('html5', true)
+        }
+    }
 
-    compileOnly 'org.jetbrains:annotations:24.0.0'
-    compileOnly 'org.projectlombok:lombok:1.18.32'
-    annotationProcessor 'org.projectlombok:lombok:1.18.32'
-    annotationProcessor 'org.jetbrains:annotations:24.0.0'
+    task sourcesJar(type: Jar, dependsOn: classes) {
+        dependsOn classes
+        archiveFileName = "${rootProject.name}-${project.name.capitalize()}-sources.jar"
+        from sourceSets.main.allSource
+    }
 
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.2'
-    testImplementation 'org.junit.jupiter:junit-jupiter-params:5.10.2'
-    testImplementation 'org.junit.jupiter:junit-jupiter-engine:5.10.2'
+    shadowJar {
+        destinationDirectory.set(file("$rootDir/target"))
+        archiveClassifier.set('')
+        //minimize()
+    }
 
-    testCompileOnly 'org.jetbrains:annotations:24.1.0'
-    testCompileOnly 'org.projectlombok:lombok:1.18.32'
-    testAnnotationProcessor 'org.projectlombok:lombok:1.18.32'
+    jar.dependsOn shadowJar
+    clean.delete "$rootDir/target"
 }
 
-def targetJavaVersion = 17
-java {
-    def javaVersion = JavaVersion.toVersion(targetJavaVersion)
-    sourceCompatibility = 16
-    targetCompatibility = 16
-    if (JavaVersion.current() < javaVersion) {
-        toolchain.languageVersion = JavaLanguageVersion.of(targetJavaVersion)
-    }
-}
+logger.lifecycle("Building Fadcs ${version}")
 
-tasks.withType(JavaCompile).configureEach {
-    options.encoding = 'UTF-8'
-
-    if (targetJavaVersion >= 10 || JavaVersion.current().isJava10Compatible()) {
-        options.release.set(targetJavaVersion)
+@SuppressWarnings('GrMethodMayBeStatic')
+def versionMetadata() {
+    if (grgit == null) {
+        return '-' + System.getenv("GITHUB_RUN_NUMBER") ? 'build.' + System.getenv("GITHUB_RUN_NUMBER") : 'unknown'
     }
-}
 
-processResources {
-    def props = [version: version]
-    inputs.properties props
-    filteringCharset 'UTF-8'
-    filesMatching('plugin.yml') {
-        expand props
+    // Get if there is a tag for this commit
+    def tag = grgit.tag.list().find { it.commit.id == grgit.head().id }
+    if (tag != null) {
+        return ''
     }
+
+    // Otherwise, get the last commit hash and if it's a clean head
+    return '-' + grgit.head().abbreviatedId + (grgit.status().clean ? '' : '-indev')
 }

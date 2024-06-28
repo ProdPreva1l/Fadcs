@@ -1,0 +1,22 @@
+name: Fadcs
+version: '1.0.0-7dd25be-indev'
+main: info.preva1l.fadcs.Fadcs
+api-version: '1.16'
+
+permissions:
+  fadcs.*:
+    default: false
+    description: All permissions
+    children:
+      - fadcs.use
+      - fadcs.create
+      - fadcs.create.admin
+  fadcs.use:
+    default: true
+    description: Whether or not the player can buy/sell to/from chest shops
+  fadcs.create:
+    default: true
+    description: Whether or not the player can create new chest shops
+  fadcs.create.admin:
+    default: false
+    description: Whether or not the player can create admin chest shops
